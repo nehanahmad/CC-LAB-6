@@ -6,21 +6,19 @@ pipeline {
         stage('Build Backend Image') {
             steps {
                 sh '''
-                echo "Workspace:"
-                pwd
-                ls
-
+                docker rm -f backend1 backend2 nginx-lb || true
                 docker rmi -f backend-app || true
-                docker build -t backend-app backend
+
+                cd backend
+                docker build -t backend-app .
                 '''
             }
         }
 
-        stage('Deploy Backend Containers') {
+        stage('Run Backend Containers') {
             steps {
                 sh '''
                 docker network create app-network || true
-                docker rm -f backend1 backend2 || true
 
                 docker run -d --name backend1 --network app-network backend-app
                 docker run -d --name backend2 --network app-network backend-app
@@ -28,7 +26,7 @@ pipeline {
             }
         }
 
-        stage('Deploy NGINX Load Balancer') {
+        stage('Run NGINX Load Balancer') {
             steps {
                 sh '''
                 docker rm -f nginx-lb || true
@@ -48,10 +46,10 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline executed successfully. NGINX load balancer is running.'
+            echo '✅ Backend + NGINX deployed successfully'
         }
         failure {
-            echo 'Pipeline failed. Check console logs for errors.'
+            echo '❌ Pipeline failed'
         }
     }
 }
